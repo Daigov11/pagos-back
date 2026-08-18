@@ -34,10 +34,6 @@ export const env = {
   chatIA: {
     apiKey: process.env.CHATIA_API_KEY ?? null,
     model: process.env.CHATIA_MODEL ?? 'claude-opus-5',
-    roles: (process.env.CHATIA_ROLES ?? '_SISTEMAS,ADMINISTRADOR,POSTVENTA')
-      .split(',')
-      .map((r) => r.trim().toUpperCase())
-      .filter(Boolean),
   },
 };
 
