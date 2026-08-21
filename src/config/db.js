@@ -45,4 +45,20 @@ export async function migrate() {
       INDEX idx_usuario (id_usuario)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comision_equipo_asignado (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      id_orden_servicio BIGINT NOT NULL,
+      id_usuario VARCHAR(20) NOT NULL,
+      codigo_item VARCHAR(60) NOT NULL,
+      nombre_item VARCHAR(200) NOT NULL,
+      cantidad INT NOT NULL DEFAULT 1,
+      comision_unitaria DECIMAL(10, 2) NOT NULL,
+      comision_total DECIMAL(10, 2) NOT NULL,
+      creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_orden (id_orden_servicio),
+      INDEX idx_usuario (id_usuario)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
 }

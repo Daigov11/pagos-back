@@ -111,6 +111,31 @@ export async function getProductos(token, idAlmacen) {
   });
 }
 
+/**
+ * Trae los comprobantes de facturacion de TODAS las sucursales (idSucursal=ALL) en un
+ * rango de fechas. Cada fila trae "detalle": [{ cantidad, nombre, precio }], que es lo
+ * unico que nos da el producto/equipo real vendido (el pago dentro de orden-servicio
+ * solo trae el total). Se matchea con el pago de la orden por "nroComprobante".
+ */
+export async function getFacturacion(token, { fechaInicio, fechaFin }) {
+  return conFallback(token, async (t) => {
+    const client = externalApiWithToken(t);
+    const { data } = await client.get('/Facturacion', {
+      params: {
+        idSucursal: 'ALL',
+        tipoDoc: 'ALL',
+        fechaInicio,
+        fechaFin,
+        displayStart: 0,
+        displayLength: 1000000,
+        allFechas: 1,
+        estado: 'ALL',
+      },
+    });
+    return extractRows(data);
+  });
+}
+
 export function extractRows(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;

@@ -1,25 +1,23 @@
-const TASA_COMISION_SISTEMA_POR_TIPO_PLAN = {
-  MENSUAL: 0.3,
-  SEMESTRAL: 0.2,
-  TRIMESTRAL: 0.15,
-  ANUAL: 0.1,
-};
-
-export function getTasaComisionSistema(nTipoPlan) {
-  const key = (nTipoPlan ?? '').trim().toUpperCase();
-  return TASA_COMISION_SISTEMA_POR_TIPO_PLAN[key] ?? 0;
-}
-
 const ORIGEN_PAGO_EQUIPO = 'ADMINISTRATIVO EQUIPO';
-const TASA_COMISION_EQUIPO = 0.3;
+
+function pagosEquipo(venta) {
+  if (!Array.isArray(venta.pagos)) return [];
+  return venta.pagos.filter((p) => (p.origen ?? '').trim().toUpperCase() === ORIGEN_PAGO_EQUIPO);
+}
 
 export function montoEquipo(venta) {
-  if (!Array.isArray(venta.pagos)) return 0;
-  return venta.pagos
-    .filter((p) => (p.origen ?? '').trim().toUpperCase() === ORIGEN_PAGO_EQUIPO)
-    .reduce((sum, p) => sum + Number(p.total ?? 0), 0);
+  return pagosEquipo(venta).reduce((sum, p) => sum + Number(p.total ?? 0), 0);
 }
 
-export function comisionEquipo(venta) {
-  return montoEquipo(venta) * TASA_COMISION_EQUIPO;
+/**
+ * Comprobantes de equipo de una orden (nroComprobante + su fechaEmitido real), para
+ * buscarlos en /Facturacion. OJO: la factura de equipo puede emitirse en un mes distinto
+ * al de la orden de servicio (ej. OS de febrero facturada en marzo), asi que hay que
+ * consultar /Facturacion por la fecha real del comprobante, NUNCA por el periodo de la
+ * venta — si no, se pierde el detalle de items en esos casos.
+ */
+export function comprobantesEquipo(venta) {
+  return pagosEquipo(venta)
+    .filter((p) => p.nroComprobante)
+    .map((p) => ({ nroComprobante: p.nroComprobante, fechaEmitido: p.fechaEmitido }));
 }

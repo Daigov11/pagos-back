@@ -1,5 +1,7 @@
 import { crearReclamo, findReclamo } from '../db/reclamos.repository.js';
-import { calcularResumenComision } from '../services/comisiones.service.js';
+import { crearAsignacion, eliminarAsignacion } from '../db/comisionEquipos.repository.js';
+import { calcularResumenComision, ventasDelUsuario } from '../services/comisiones.service.js';
+import { buscarItemEquipo, CATALOGO_COMISION_EQUIPOS } from '../config/equiposComision.js';
 import { getCurrentMonthRange, getMonthRange } from '../utils/dateRange.js';
 
 function handleError(res, error) {
@@ -64,4 +66,53 @@ export async function reclamarComision(req, res) {
   } catch (error) {
     return handleError(res, error);
   }
+}
+
+export function catalogoEquiposComision(_req, res) {
+  return res.json({ codResponse: '1', message: 'OK', data: CATALOGO_COMISION_EQUIPOS });
+}
+
+export async function asignarEquipoComision(req, res) {
+  const idOrdenServicio = Number(req.params.idOrdenServicio);
+  const { codigoItem, cantidad = 1 } = req.body;
+
+  const item = buscarItemEquipo(codigoItem);
+  if (!item) {
+    return res.status(400).json({ codResponse: '0', message: 'Equipo no encontrado en el catálogo', data: null });
+  }
+  const cantidadNum = Number(cantidad);
+  if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) {
+    return res.status(400).json({ codResponse: '0', message: 'Cantidad inválida', data: null });
+  }
+
+  try {
+    const ventas = await ventasDelUsuario(req, getCurrentMonthRange());
+    const venta = ventas.find((v) => v.idOrdenServicio === idOrdenServicio);
+    if (!venta) {
+      return res.status(404).json({ codResponse: '0', message: 'Orden de servicio no encontrada', data: null });
+    }
+
+    const comisionTotal = Number((item.comisionUnitaria * cantidadNum).toFixed(2));
+    const asignacion = await crearAsignacion({
+      idOrdenServicio,
+      idUsuario: req.user.id_usuario,
+      codigoItem: item.codigo,
+      nombreItem: item.nombre,
+      cantidad: cantidadNum,
+      comisionUnitaria: item.comisionUnitaria,
+      comisionTotal,
+    });
+    return res.status(201).json({ codResponse: '1', message: 'Equipo asignado', data: asignacion });
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
+export async function eliminarAsignacionEquipoComision(req, res) {
+  const id = Number(req.params.id);
+  const eliminado = await eliminarAsignacion(id, req.user.id_usuario);
+  if (!eliminado) {
+    return res.status(404).json({ codResponse: '0', message: 'Asignación no encontrada', data: null });
+  }
+  return res.json({ codResponse: '1', message: 'Asignación eliminada', data: null });
 }
